@@ -1,88 +1,76 @@
-from sqlalchemy import create_engine, text
+import sqlite3
+import os
 
-# Queries
-QUERY_FLIGHT_BY_ID = """
-    SELECT flights.ID as ID,
-           flights.ORIGIN_AIRPORT,
-           flights.DESTINATION_AIRPORT,
-           airlines.AIRLINE,
-           flights.DEPARTURE_DELAY as DELAY
-    FROM flights
-    JOIN airlines ON flights.AIRLINE = airlines.ID
-    WHERE flights.ID = :id
-"""
-
-QUERY_FLIGHTS_BY_DATE = """
-    SELECT flights.ID as ID,
-           flights.ORIGIN_AIRPORT,
-           flights.DESTINATION_AIRPORT,
-           airlines.AIRLINE,
-           flights.DEPARTURE_DELAY as DELAY
-    FROM flights
-    JOIN airlines ON flights.AIRLINE = airlines.ID
-    WHERE strftime('%d', flights.DATE) = :day
-      AND strftime('%m', flights.DATE) = :month
-      AND strftime('%Y', flights.DATE) = :year
-"""
-
-QUERY_DELAYED_BY_AIRLINE = """
-    SELECT flights.ID as ID,
-           flights.ORIGIN_AIRPORT,
-           flights.DESTINATION_AIRPORT,
-           airlines.AIRLINE,
-           flights.DEPARTURE_DELAY as DELAY
-    FROM flights
-    JOIN airlines ON flights.AIRLINE = airlines.ID
-    WHERE airlines.AIRLINE LIKE :airline
-      AND flights.DEPARTURE_DELAY >= 20
-"""
-
-QUERY_DELAYED_BY_AIRPORT = """
-    SELECT flights.ID as ID,
-           flights.ORIGIN_AIRPORT,
-           flights.DESTINATION_AIRPORT,
-           airlines.AIRLINE,
-           flights.DEPARTURE_DELAY as DELAY
-    FROM flights
-    JOIN airlines ON flights.AIRLINE = airlines.ID
-    WHERE flights.ORIGIN_AIRPORT = :airport
-      AND flights.DEPARTURE_DELAY >= 20
-"""
-
-# DB setup
-DATABASE_URL = "sqlite:///data/flights.sqlite3"
-engine = create_engine(DATABASE_URL)
+# Absoluter Pfad zur Datenbank im Unterordner "data"
+DB_FILE = os.path.join(os.path.dirname(__file__), "data", "flights.sqlite3")
 
 
-def execute_query(query, params):
+def execute_query(query, params=None):
     """
-    Execute an SQL query with the params provided in a dictionary,
-    and return a list of records (dictionary-like objects).
+    Führt eine SQL-Abfrage auf der SQLite-Datenbank aus.
+    Gibt die Ergebnisse als Liste von Row-Objekten zurück.
     """
+    results = []
     try:
-        with engine.connect() as conn:
-            result = conn.execute(text(query), params)
-            return result.fetchall()
-    except Exception as e:
-        print("Query error:", e)
-        return []
+        conn = sqlite3.connect(DB_FILE)
+        conn.row_factory = sqlite3.Row  # Zugriff per Spaltenname
+        cursor = conn.cursor()
+        if params:
+            cursor.execute(query, params)
+        else:
+            cursor.execute(query)
+        results = cursor.fetchall()
+    except sqlite3.Error as e:
+        print("Database error:", e)
+    finally:
+        conn.close()
+    return results
 
 
 def get_flight_by_id(flight_id):
-    params = {"id": flight_id}
-    return execute_query(QUERY_FLIGHT_BY_ID, params)
+    query = """
+        SELECT f.ID, f.ORIGIN_AIRPORT, f.DESTINATION_AIRPORT,
+               a.AIRLINE, f.DEPARTURE_DELAY AS DELAY
+        FROM flights f
+        JOIN airlines a ON f.AIRLINE = a.ID
+        WHERE f.ID = :flight_id
+    """
+    return execute_query(query, {"flight_id": flight_id})
 
 
 def get_flights_by_date(day, month, year):
-    params = {"day": f"{day:02}", "month": f"{month:02}", "year": str(year)}
-    return execute_query(QUERY_FLIGHTS_BY_DATE, params)
+    query = """
+        SELECT f.ID, f.ORIGIN_AIRPORT, f.DESTINATION_AIRPORT,
+               a.AIRLINE, f.DEPARTURE_DELAY AS DELAY
+        FROM flights f
+        JOIN airlines a ON f.AIRLINE = a.ID
+        WHERE f.YEAR = :year
+          AND f.MONTH = :month
+          AND f.DAY = :day
+    """
+    return execute_query(query, {"year": year, "month": month, "day": day})
 
 
 def get_delayed_flights_by_airline(airline_name):
-    params = {"airline": f"%{airline_name}%"}
-    return execute_query(QUERY_DELAYED_BY_AIRLINE, params)
+    query = """
+        SELECT f.ID, f.ORIGIN_AIRPORT, f.DESTINATION_AIRPORT,
+               a.AIRLINE, f.DEPARTURE_DELAY AS DELAY
+        FROM flights f
+        JOIN airlines a ON f.AIRLINE = a.ID
+        WHERE a.AIRLINE LIKE :airline
+          AND f.DEPARTURE_DELAY >= 20
+    """
+    # % für LIKE-Matching hinzufügen
+    return execute_query(query, {"airline": f"%{airline_name}%"})
 
 
 def get_delayed_flights_by_airport(airport_code):
-    params = {"airport": airport_code.upper()}
-    return execute_query(QUERY_DELAYED_BY_AIRPORT, params)
+    query = """
+        SELECT f.ID, f.ORIGIN_AIRPORT, f.DESTINATION_AIRPORT,
+               a.AIRLINE, f.DEPARTURE_DELAY AS DELAY
+        FROM flights f
+        JOIN airlines a ON f.AIRLINE = a.ID
+        WHERE f.ORIGIN_AIRPORT = :airport
+          AND f.DEPARTURE_DELAY >= 20
+    """
+    return execute_query(query, {"airport": airport_code.upper()})
