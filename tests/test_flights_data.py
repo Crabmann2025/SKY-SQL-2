@@ -1,37 +1,26 @@
-# test_flights_data.py
+import unittest
 import flights_data
 
+class TestFlightsData(unittest.TestCase):
 
-def test_get_flight_by_id():
-    print("\n=== Test: get_flight_by_id ===")
-    test_id = 2  # Beispiel-ID aus deiner DB
-    results = flights_data.get_flight_by_id(test_id)
-    for r in results:
-        print(dict(r))
+    def test_get_flight_by_id(self):
+        results = flights_data.get_flight_by_id(2)
+        self.assertTrue(len(results) > 0)
+        self.assertIsInstance(results[0], dict)
+        self.assertIn('ID', results[0])
 
-def test_get_flights_by_date():
-    print("\n=== Test: get_flights_by_date ===")
-    day, month, year = 1, 1, 2015  # Beispiel-Datum aus deiner DB
-    results = flights_data.get_flights_by_date(day, month, year)
-    for r in results:
-        print(dict(r))
+    def test_get_flights_by_date(self):
+        results = flights_data.get_flights_by_date(1,1,2015)
+        self.assertTrue(len(results) > 0)
 
-def test_get_delayed_flights_by_airline():
-    print("\n=== Test: get_delayed_flights_by_airline ===")
-    airline_name = "Virgin America"  # Beispiel-Airline
-    results = flights_data.get_delayed_flights_by_airline(airline_name)
-    for r in results:
-        print(dict(r))
+    def test_get_delayed_flights_by_airline(self):
+        results = flights_data.get_delayed_flights_by_airline("Virgin America")
+        self.assertTrue(all(r['DELAY'] >= 20 for r in results))
 
-def test_get_delayed_flights_by_airport():
-    print("\n=== Test: get_delayed_flights_by_airport ===")
-    airport_code = "LAX"  # Beispiel-Airport
-    results = flights_data.get_delayed_flights_by_airport(airport_code)
-    for r in results:
-        print(dict(r))
+    def test_get_delayed_flights_by_airport(self):
+        results = flights_data.get_delayed_flights_by_airport("LAX")
+        self.assertTrue(all(r['DELAY'] >= 20 for r in results))
 
-if __name__ == "__main__":
-    test_get_flight_by_id()
-    test_get_flights_by_date()
-    test_get_delayed_flights_by_airline()
-    test_get_delayed_flights_by_airport()
+if __name__ == '__main__':
+    unittest.main()
+

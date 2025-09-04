@@ -1,10 +1,16 @@
 import flights_data
+import flight_plots
 from datetime import datetime
 import sqlalchemy
-import os
 import csv
+import os
 
 IATA_LENGTH = 3
+DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data")
+if not os.path.exists(DATA_FOLDER):
+    os.makedirs(DATA_FOLDER)
+
+# ---------------------- Funktionen für die Abfragen ----------------------
 
 def delayed_flights_by_airline():
     airline_input = input("Enter airline name: ")
@@ -45,6 +51,8 @@ def flights_by_date():
     results = flights_data.get_flights_by_date(date.day, date.month, date.year)
     print_results(results)
 
+# ---------------------- Ergebnisse anzeigen und CSV exportieren ----------------------
+
 def print_results(results):
     print(f"Got {len(results)} results.")
 
@@ -59,19 +67,15 @@ def print_results(results):
         else:
             print(f"{result['ID']}. {origin} -> {dest} by {airline}")
 
-    # CSV export
-    export = input("\nDo you want to export these results to a CSV file? (y/n): ").strip().lower()
+    # CSV-Export
+    export = input("\nDo you want to export these results as a CSV file? (y/n): ").strip().lower()
     if export == 'y':
-        # Ensure 'data' folder exists
-        data_folder = os.path.join(os.path.dirname(__file__), "data")
-        if not os.path.exists(data_folder):
-            os.makedirs(data_folder)
-
-        filename_input = input("Enter the filename (without extension, e.g., flights): ").strip()
-        filename = os.path.join(data_folder, f"{filename_input}.csv")
-
+        filename = input("Enter file name (e.g., flights.csv): ").strip()
+        if not filename.endswith(".csv"):
+            filename += ".csv"
+        filepath = os.path.join(DATA_FOLDER, filename)
         try:
-            with open(filename, mode='w', newline='', encoding='utf-8') as csvfile:
+            with open(filepath, mode='w', newline='', encoding='utf-8') as csvfile:
                 fieldnames = ['ID', 'ORIGIN_AIRPORT', 'DESTINATION_AIRPORT', 'AIRLINE', 'DELAY']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
@@ -83,17 +87,19 @@ def print_results(results):
                         'AIRLINE': result['AIRLINE'],
                         'DELAY': result['DELAY'] if result['DELAY'] else 0
                     })
-            print(f"Data successfully saved to {filename}!")
+            print(f"Data successfully saved to {filepath}")
         except Exception as e:
             print("Error saving CSV file:", e)
 
+# ---------------------- Menüsystem ----------------------
+
 def show_menu_and_get_input():
-    print("Menu:")
+    print("\nMenu:")
     for key, value in FUNCTIONS.items():
         print(f"{key}. {value[1]}")
     while True:
         try:
-            choice = int(input())
+            choice = int(input("Choose an option: "))
             if choice in FUNCTIONS:
                 return FUNCTIONS[choice][0]
         except ValueError:
@@ -105,8 +111,13 @@ FUNCTIONS = {
     2: (flights_by_date, "Show flights by date"),
     3: (delayed_flights_by_airline, "Delayed flights by airline"),
     4: (delayed_flights_by_airport, "Delayed flights by origin airport"),
-    5: (quit, "Exit")
+    5: (flight_plots.delayed_percentage_per_airline, "Plot delayed flights per airline"),
+    6: (flight_plots.delayed_percentage_per_hour, "Plot delayed flights per hour"),
+    7: (flight_plots.delayed_heatmap_routes, "Heatmap of delayed flights per route"),
+    8: (quit, "Exit")
 }
+
+# ---------------------- Main Loop ----------------------
 
 def main():
     while True:
