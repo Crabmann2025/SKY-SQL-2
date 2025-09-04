@@ -10,6 +10,7 @@ def execute_query(query, params=None):
     Führt eine SQL-Abfrage auf der SQLite-Datenbank aus.
     Gibt die Ergebnisse als Liste von Row-Objekten zurück.
     """
+    global conn
     results = []
     try:
         conn = sqlite3.connect(DB_FILE)
