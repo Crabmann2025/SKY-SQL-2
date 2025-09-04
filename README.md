@@ -32,9 +32,11 @@ SKY-SQL-2 is a Python-based flight reporting tool that allows you to query fligh
 2. Create and activate a virtual environment (recommended):
    ```bash
    python -m venv .venv
-   # Windows
+- Windows
+   ```bash 
    .venv\Scripts\activate
-   # macOS / Linux
+- macOS / Linux
+   ```bash 
    source .venv/bin/activate
 
 3. Install required packages:
