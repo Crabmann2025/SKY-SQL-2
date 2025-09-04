@@ -1,0 +1,13 @@
+# Standard database
+sqlite3; python_version >= "3.0"
+
+# Data manipulation
+pandas>=2.0
+numpy>=1.25
+
+# Visualization
+matplotlib>=3.8
+seaborn>=0.12
+
+# Optional: if you want interactive plotting later
+# plotly>=6.0
